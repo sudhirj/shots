@@ -8,28 +8,42 @@ class DashboardController < ApplicationController
     lat = 0
     lon = 0
     radius_km = [[params[:distance].to_i, 100].min, 10].max
-    count = [[params[:count].to_i, 100].min, 10].max
 
     if params[:pincode].present? && params[:pincode]
       pincode_location = $redis.with { |r| r.geopos 'geopins', params[:pincode] }.compact.flatten
       lon, lat = pincode_location unless pincode_location.empty?
     end
 
+    @age = params[:age].blank? ? 45 : params[:age].to_i
+
     sessions_data = $redis.with do |r|
       r.geosearch "geosessions/#{date}", 'FROMLONLAT', lon, lat, 'BYRADIUS', radius_km, 'km',
-                  'WITHDIST', 'ASC', 'COUNT', count
+                  'WITHDIST', 'ASC'
     end
 
     session_ids = sessions_data.map(&:first)
     @session_distances = sessions_data.each_with_object({}) { |sess, memo| memo[sess.first] = sess.last.to_f.round }
 
-    sessions = $redis.with { |r| r.hmget "dates/#{date}/sessions", session_ids }
-    sessions = sessions.map { |data| JSON.parse(data) }.each_with_object({}) { |s, memo| memo[s['session_id']] = s }
-    @sessions = session_ids.map { |id| sessions[id] }
+    @sessions = []
+    @centers = {}
 
-    center_ids = @sessions.map { |s| s['center_id'] }.uniq
-    centers = $redis.with { |r| r.hmget 'centers', center_ids }
-    @centers = centers.map { |data| JSON.parse(data) }.each_with_object({}) { |c, memo| memo[c['center_id']] = c.except('sessions', 'lat', 'long') }
+    unless session_ids.empty?
+      sessions = $redis.with { |r| r.hmget "dates/#{date}/sessions", session_ids }
+      sessions = sessions.map { |data| JSON.parse(data) }.each_with_object({}) { |s, memo| memo[s['session_id']] = s }
+      @sessions = session_ids.map { |id| sessions[id] }
+
+      center_ids = @sessions.map { |s| s['center_id'] }.uniq
+      centers = $redis.with { |r| r.hmget 'centers', center_ids }
+      @centers = centers.map { |data| JSON.parse(data) }.each_with_object({}) { |c, memo| memo[c['center_id']] = c.except('sessions', 'lat', 'long') }
+
+      if params[:vaccine].present? && params[:vaccine] != 'ANY'
+        @sessions = @sessions.select{|s| s['vaccine'] == params[:vaccine].to_s.upcase}
+      end
+
+      @sessions = @sessions.select{|s| s['min_age_limit'] <= @age}
+
+    end
+
 
     return unless params[:format] == 'json'
 
