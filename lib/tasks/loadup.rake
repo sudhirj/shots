@@ -3,6 +3,7 @@
 namespace :loadup do
   task :states do
     states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states')
+    puts states
     states['states'].each do |state|
       $redirect.hset 'states', state['state_id'], state['state_name']
     end
