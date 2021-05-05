@@ -51,7 +51,7 @@ namespace :loadup do
     end
   end
 
-  task :index do
+  task index: [:environment] do
     $redis.with do |redis|
       centers = redis.hgetall 'centers'
       centers.each do |_id, center_json|
