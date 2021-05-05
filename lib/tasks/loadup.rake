@@ -4,42 +4,56 @@ agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 F
 
 namespace :loadup do
   task :states do
-    states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states', headers: { 'User-Agent' => agent })
-    puts states
-    states['states'].each do |state|
-      $redirect.hset 'states', state['state_id'], state['state_name']
+    $redis.with do |redis|
+      states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states',
+                            headers: { 'User-Agent' => agent })
+      puts states
+      redis.pipelined do
+        states['states'].each do |state|
+          redis.hset 'states', state['state_id'], state['state_name']
+        end
+      end
     end
   end
 
   task :districts do
-    states = $redirect.hgetall 'states'
-    states.each do |id, _state_name|
-      districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{id}", headers: { 'User-Agent' => agent })
-      districts['districts'].each do |district|
-        $redirect.hset 'districts', district['district_id'], district['district_name']
-        $redirect.sadd "states/#{id}/districts", district['district_id']
-        $redirect.set "districts/#{district['district_id']}/state", id
+    $redis.with do |redis|
+      states = redis.hgetall 'states'
+      redis.pipelined do
+        states.each do |id, _state_name|
+          districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{id}",
+                                   headers: { 'User-Agent' => agent })
+          districts['districts'].each do |district|
+            redis.hset 'districts', district['district_id'], district['district_name']
+          end
+        end
       end
     end
   end
 
   task :centers do
-    districts = $redirect.hkeys 'districts'
-    districts.shuffle.each_with_index do |id, idx|
-      centers = HTTParty.get("https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent })
-      break if centers.code != 200
+    $redis.with do |redis|
+      districts = redis.hkeys 'districts'
+      redis.pipelined do
+        districts.shuffle.each_with_index do |id, idx|
+          centers = HTTParty.get(
+            "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
+          )
+          break if centers.code != 200
 
-      puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
-      centers['centers'].each do |center|
-        $redirect.hset 'centers', center['center_id'], center.to_json
+          puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
+          centers['centers'].each do |center|
+            redis.hset 'centers', center['center_id'], center.to_json
+          end
+          sleep 5
+        end
       end
-      sleep 5
     end
   end
 
   task :index do
     $redis.with do |redis|
-      centers = $redirect.hgetall 'centers'
+      centers = redis.hgetall 'centers'
       centers.each do |_id, center_json|
         center = JSON.parse(center_json)
         redis.sadd 'pincodes', center['pincode']
@@ -56,9 +70,13 @@ namespace :loadup do
   end
 
   task :geopin do
-    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
-      $redirect.geoadd 'geopins', row[10], row[9], row[1]
-      pp [row[1], row[9], row[10]]
+    $redis.with do |redis|
+      redis.pipelined do
+        CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
+          redis.geoadd 'geopins', row[10], row[9], row[1]
+          pp [row[1], row[9], row[10]]
+        end
+      end
     end
   end
 
@@ -69,6 +87,19 @@ namespace :loadup do
         center = JSON.parse(center_json)
         csv << %w[center_id name address block_name district_name state_name pincode].map do |k|
           center[k]
+        end
+      end
+    end
+  end
+
+  task :shift do
+    dest = Redis.new(url: ENV['REDIS_URL'], ssl_params: { verify_mode: OpenSSL::SSL::VERIFY_NONE })
+    src = Redis.new(url: 'redis://localhost:6379')
+
+    dest.pipelined do
+      %w[states districts centers].each do |key|
+        src.hgetall(key).each do |state|
+          dest.hset key, state
         end
       end
     end
