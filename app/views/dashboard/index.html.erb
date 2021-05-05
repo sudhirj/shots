@@ -1,22 +1,57 @@
 <div class="container my-3 mb-5">
-  <form method="GET" action="<%=root_path %>">
-  <h1 class="h3 my-4" style="line-height: 2.618em;">Slots open on
-    <select class="form-select form-select-lg d-inline w-auto mx-1" name="date">
-      <% (Date.today..(6.days.from_now)).map(&:to_date).each do |date| %>
-        <option <% if @date == date %> selected <%end %> value="<%= date.to_s %>"><%= Date::DAYNAMES[date.wday] %> / <%= date.to_formatted_s(:short) %></option>
-      <% end %>
-    </select> of <select class="form-select form-select-lg d-inline w-auto mx-1" name="vaccine">
-    <option value="ANY">any vaccine</option>
-    <option <%if params[:vaccine].to_s.upcase == "COVISHIELD" %> selected <%end %> value="COVISHIELD">COVISHIELD</option>
-    <option <%if params[:vaccine].to_s.upcase == "COVAXIN" %> selected <%end %> value="COVAXIN">COVAXIN</option>
-  </select> for people aged <select class="form-select form-select-lg d-inline w-auto mx-1" name="age">
-    <option <% if params[:age].to_s == "45" %> selected<%end %> value="45">45+</option>
-    <option <% if params[:age].to_s == "18" %> selected<%end %> value="18">18+</option>
-  </select> near
-    <input name="pincode" value="<%=params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
-    <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
-  </h1>
+  <form method="GET" action="<%= root_path %>" id="opts">
+    <h1 class="h3 my-4" style="line-height: 2.618em;">Slots open on
+      <select class="form-select form-select-lg d-inline w-auto mx-1" name="date">
+        <% (Date.today..(6.days.from_now)).map(&:to_date).each do |date| %>
+          <option
+            <% if @date == date %> selected
+            <% end %> value="<%= date.to_s %>"><%= Date::DAYNAMES[date.wday] %>
+            / <%= date.to_formatted_s(:short) %></option>
+        <% end %>
+      </select> of <select class="form-select form-select-lg d-inline w-auto mx-1" name="vaccine">
+      <option value="ANY">any vaccine</option>
+      <option
+        <% if params[:vaccine].to_s.upcase == "COVISHIELD" %> selected
+        <% end %> value="COVISHIELD">COVISHIELD
+      </option>
+      <option
+        <% if params[:vaccine].to_s.upcase == "COVAXIN" %> selected
+        <% end %> value="COVAXIN">COVAXIN
+      </option>
+    </select> for people aged <select class="form-select form-select-lg d-inline w-auto mx-1" name="age">
+      <option
+        <% if params[:age].to_s == "45" %> selected
+        <% end %> value="45">45+
+      </option>
+      <option
+        <% if params[:age].to_s == "18" %> selected
+        <% end %> value="18">18+
+      </option>
+    </select> near
+      <input name="pincode" value="<%= params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
+      <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
+    </h1>
+    <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
+    <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
   </form>
+  <% if @lat == 0 && @lon == 0 %>
+    <script>
+        window.jump = function () {
+            window.navigator.geolocation
+                .getCurrentPosition(function (pos) {
+                    document.getElementById('lat').setAttribute('value', pos.coords.latitude);
+                    document.getElementById('lon').setAttribute('value', pos.coords.longitude);
+                    document.getElementById('opts').submit();
+                }, function () {
+                    alert("Sorry, couldn't access your location. Try to find your PINCODE?")
+                });
+        }
+    </script>
+    <a href="javascript:jump()" class="d-block alert alert-success text-center fw-bold my-5">Don't know your PINCODE?
+      Click here to find centers near your current location.</a>
+  <% elsif @sessions.empty?%>
+  <div class="alert alert-warning text-center fw-bold my-4">Couldn't find any slots for those options. Try something else?</div>
+  <% end %>
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     <% @sessions.each do |session| %>
       <% center = @centers[session['center_id']] %>
@@ -41,26 +76,41 @@
             </div>
 
             <% if session['available_capacity'].to_i > 0 %>
-              <div class="ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center" style="width: 6em !important;">
+              <div class="ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center">
                 <div class="text-light text-center h2 mb-0"><%= session['available_capacity'].to_i %></div>
                 <div class="text-light text-center">available</div>
               </div>
             <% else %>
-              <div class="ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center" style="width: 6em !important;">
-                <div class="text-light text-center h5 mb-0 w-100 px-4">FULL</div>
+              <div class="ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center">
+                <div class="text-light text-center h5 mb-0" style="width: 4em !important;">FULL</div>
               </div>
             <% end %>
           </div>
           <% slot_times = session['slots'].flat_map { |s| s.split('-') }.map { |t| DateTime.parse(t) } %>
           <% unless slot_times.empty? %>
-          <div class="card-footer text-end text-muted"><%= pluralize session['slots'].size, 'slot' %>
-            from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
-          <%end %>
+            <div class="card-footer text-end text-muted"><%= pluralize session['slots'].size, 'slot' %>
+              from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
+          <% end %>
         </div>
       </div>
     <% end %>
   </div>
 </div>
-<div class="container my-5">
-  <div class="text-center bg-light p-3 rounded">Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>.</div>
-</div>
+
+<% unless (@lat.zero? && @lon.zero?) || @sessions.empty? %>
+  <div class="container my-5">
+    <div class="text-center bg-light p-3 py-4 rounded">
+      <p>Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>. Code on
+        <a href="https://github.com/sudhirj/shots">GitHub</a>.</p>
+      <p>Data from the
+        <a href="https://apisetu.gov.in/public/marketplace/api/cowin/cowin-public-v2">CoWIN Public APIs</a>.
+      </p>
+      <p>Some location data is sourced from
+        <a href="http://download.geonames.org/export/">GeoNames under the Creative Commons License</a>.</p>
+      <p><a href="https://twitter.com/sudhirj">Contact me</a> if you find this useful, I'll try to get govt. permission
+        to
+        finish the full registration process right here.</p>
+      <p class="mb-0">Add <code>format=json</code> to query parameters to get JSON.</p>
+    </div>
+  </div>
+<% end %>
