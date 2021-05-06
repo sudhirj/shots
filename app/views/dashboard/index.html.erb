@@ -79,14 +79,14 @@
               </div>
 
               <% if session['available_capacity'].to_i > 0 %>
-                <div class="ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center">
+                <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center">
                   <div class="text-light text-center h2 mb-0" id="<%= session['session_id'] %>"><%= session['available_capacity'].to_i %></div>
                   <div class="text-light text-center">available</div>
-                </div>
+                </a>
               <% else %>
-                <div class="ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center">
+                <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center">
                   <div class="text-light text-center h5 mb-0" style="width: 4em !important;">FULL</div>
-                </div>
+                </a>
               <% end %>
             </div>
             <% slot_times = session['slots'].flat_map { |s| s.split('-') }.map { |t| DateTime.parse(t) } %>
