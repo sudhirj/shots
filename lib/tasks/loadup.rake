@@ -41,33 +41,26 @@ namespace :loadup do
         break if centers.code != 200
 
         puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
-        centers['centers'].each do |center|
-          redis.hset 'centers', center['center_id'], center.merge(district_id: id.to_i).to_json
+        pp centers['centers']
+        pincodes = centers['centers'].to_a.map { _1['pincode'] }
+        positions = redis.geopos 'geopins', pincodes
+        pincode_map = pincodes.zip(positions).each_with_object({}) do |c, memo|
+          memo[c.first] = c.last || []
         end
-        sleep 5
-      end
-    end
-  end
-
-  task index: [:environment] do
-    $redis.with do |redis|
-      centers = redis.hgetall('centers').map { |_id, center_json| JSON.parse(center_json) }
-      pincodes = centers.map { |c| c['pincode'] }
-      positions = redis.geopos 'geopins', pincodes
-      pincode_map = pincodes.zip(positions).each_with_object({}) do |c, memo|
-        memo[c.first] = c.last || []
-      end
-      redis.pipelined do
-        centers.each do |center|
-          puts "Indexing #{%w[name district_name state_name].map{center[_1]}.join(' / ')}"
-          position = pincode_map[center['pincode']]
-          center['sessions'].each do |session|
-            redis.geoadd "geosessions/#{session['date']}", position.first.to_f, position.last.to_f,
-                         session['session_id']
-            redis.hset "dates/#{session['date']}/sessions", session['session_id'],
-                       session.merge(center_id: center['center_id']).to_json
+        redis.pipelined do
+          centers['centers'].each do |center|
+            redis.hset 'centers', center['center_id'], center.merge(district_id: id.to_i).to_json
+            position = pincode_map[center['pincode']]
+            center['sessions'].each do |session|
+              redis.geoadd "geosessions/#{session['date']}", position.first.to_f, position.last.to_f,
+                           session['session_id']
+              redis.hset "dates/#{session['date']}/sessions", session['session_id'],
+                         session.merge(center_id: center['center_id']).to_json
+            end
           end
         end
+
+        sleep 5
       end
     end
   end
