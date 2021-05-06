@@ -42,7 +42,7 @@ namespace :loadup do
 
         puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
         centers['centers'].each do |center|
-          redis.hset 'centers', center['center_id'], center.to_json
+          redis.hset 'centers', center['center_id'], center.merge(district_id: id.to_i).to_json
         end
         sleep 5
       end
@@ -59,8 +59,7 @@ namespace :loadup do
       end
       redis.pipelined do
         centers.each do |center|
-          redis.sadd 'pincodes', center['pincode']
-          redis.hset "pincodes/#{center['pincode']}/centers", center['center_id'], center.to_json
+          puts "Indexing #{%w[name district_name state_name].map{center[_1]}.join(' / ')}"
           position = pincode_map[center['pincode']]
           center['sessions'].each do |session|
             redis.geoadd "geosessions/#{session['date']}", position.first.to_f, position.last.to_f,

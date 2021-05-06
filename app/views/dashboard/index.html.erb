@@ -1,116 +1,146 @@
-<div class="container my-3 mb-5">
-  <form method="GET" action="<%= root_path %>" id="opts">
-    <h1 class="h3 my-4" style="line-height: 2.618em;">Slots open on
-      <select class="form-select form-select-lg d-inline w-auto mx-1" name="date">
-        <% (Date.today..(6.days.from_now)).map(&:to_date).each do |date| %>
-          <option
-            <% if @date == date %> selected
-            <% end %> value="<%= date.to_s %>"><%= Date::DAYNAMES[date.wday] %>
-            / <%= date.to_formatted_s(:short) %></option>
-        <% end %>
-      </select> of <select class="form-select form-select-lg d-inline w-auto mx-1" name="vaccine">
-      <option value="ANY">any vaccine</option>
-      <option
-        <% if params[:vaccine].to_s.upcase == "COVISHIELD" %> selected
-        <% end %> value="COVISHIELD">COVISHIELD
-      </option>
-      <option
-        <% if params[:vaccine].to_s.upcase == "COVAXIN" %> selected
-        <% end %> value="COVAXIN">COVAXIN
-      </option>
-    </select> for people aged <select class="form-select form-select-lg d-inline w-auto mx-1" name="age">
-      <option
-        <% if params[:age].to_s == "45" %> selected
-        <% end %> value="45">45+
-      </option>
-      <option
-        <% if params[:age].to_s == "18" %> selected
-        <% end %> value="18">18+
-      </option>
-    </select> near
-      <input name="pincode" value="<%= params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
-      <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
-    </h1>
-    <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
-    <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
-  </form>
-  <% if @lat == 0 && @lon == 0 %>
-    <script>
-        window.jump = function () {
-            window.navigator.geolocation
-                .getCurrentPosition(function (pos) {
-                    document.getElementById('lat').setAttribute('value', pos.coords.latitude);
-                    document.getElementById('lon').setAttribute('value', pos.coords.longitude);
-                    document.getElementById('opts').submit();
-                }, function () {
-                    alert("Sorry, couldn't access your location. Try to find your PINCODE?")
-                });
-        }
-    </script>
-    <a href="javascript:jump()" class="d-block alert alert-success text-center fw-bold my-5">Don't know your PINCODE?
-      Click here to find centers near your current location.</a>
-  <% elsif @sessions.empty?%>
-  <div class="alert alert-warning text-center fw-bold my-4">Couldn't find any slots for those options. Try something else?</div>
-  <% end %>
-  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-    <% @sessions.each do |session| %>
-      <% center = @centers[session['center_id']] %>
-      <div class="col">
-        <div class="card h-100">
-          <div class="card-header py-3 bg-light text-muted small d-flex justify-content-between align-items-center">
-            <span class="fw-bold p-1 px-2 rounded border border-dark text-dark"><%= session['vaccine'] %></span>
-            <span class="p-1 px-2 rounded border fw-bold <%= session['min_age_limit'].to_i > 18 ? 'border-danger text-danger' : 'border-success text-success' %>">Age: <%= session['min_age_limit'].to_i %>&plus;</span>
-            <span class="p-1 px-2 rounded border fw-bold <%= center['fee_type'].to_s.upcase == 'FREE' ? 'border-success text-success' : 'border-warning text-warning' %>"><%= center['fee_type'].to_s.upcase %></span>
-          </div>
-          <div class="card-body d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="card-title mb-2">
-                <span><%= center['name'] %></span>
-              </h6>
-              <div class="card-text small text-muted">
-                <div><%= center['address'].split(',').map(&:strip).join(', ') %></div>
-                <div><%= ['block_name', 'district_name'].map { |k| center[k] }.join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s + '.' %></div>
-                <% if @session_distances[session['session_id']].to_i > 0 %>
-                  <div class="fw-bold">~<%= @session_distances[session['session_id']].to_i %> km away.</div>
-                <% end %></div>
-            </div>
-
-            <% if session['available_capacity'].to_i > 0 %>
-              <div class="ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center">
-                <div class="text-light text-center h2 mb-0"><%= session['available_capacity'].to_i %></div>
-                <div class="text-light text-center">available</div>
-              </div>
-            <% else %>
-              <div class="ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center">
-                <div class="text-light text-center h5 mb-0" style="width: 4em !important;">FULL</div>
-              </div>
-            <% end %>
-          </div>
-          <% slot_times = session['slots'].flat_map { |s| s.split('-') }.map { |t| DateTime.parse(t) } %>
-          <% unless slot_times.empty? %>
-            <div class="card-footer text-end text-muted"><%= pluralize session['slots'].size, 'slot' %>
-              from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
+<div class="container d-flex flex-column justify-content-between h-100">
+  <div>
+    <form method="GET" action="<%= root_path %>" id="opts">
+      <h1 class="h3 my-4" style="line-height: 2.618em;">Slots open on
+        <select class="form-select form-select-lg d-inline w-auto mx-1" name="date">
+          <% (Date.today..(6.days.from_now)).map(&:to_date).each do |date| %>
+            <option
+              <% if @date == date %> selected
+              <% end %> value="<%= date.to_s %>"><%= Date::DAYNAMES[date.wday] %>
+              / <%= date.to_formatted_s(:short) %></option>
           <% end %>
-        </div>
+        </select> of <select class="form-select form-select-lg d-inline w-auto mx-1" name="vaccine">
+        <option value="ANY">any vaccine</option>
+        <option
+          <% if params[:vaccine].to_s.upcase == "COVISHIELD" %> selected
+          <% end %> value="COVISHIELD">COVISHIELD
+        </option>
+        <option
+          <% if params[:vaccine].to_s.upcase == "COVAXIN" %> selected
+          <% end %> value="COVAXIN">COVAXIN
+        </option>
+      </select> for people aged <select class="form-select form-select-lg d-inline w-auto mx-1" name="age">
+        <option
+          <% if params[:age].to_s == "45" %> selected
+          <% end %> value="45">45+
+        </option>
+        <option
+          <% if params[:age].to_s == "18" %> selected
+          <% end %> value="18">18+
+        </option>
+      </select> near
+        <input name="pincode" value="<%= params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
+        <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
+      </h1>
+      <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
+      <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
+    </form>
+    <% if @lat == 0 && @lon == 0 %>
+      <script>
+          window.jump = function () {
+              window.navigator.geolocation
+                  .getCurrentPosition(function (pos) {
+                      document.getElementById('lat').setAttribute('value', pos.coords.latitude);
+                      document.getElementById('lon').setAttribute('value', pos.coords.longitude);
+                      document.getElementById('opts').submit();
+                  }, function () {
+                      alert("Sorry, couldn't access your location. Try to find your PINCODE?")
+                  });
+          }
+      </script>
+      <a href="javascript:jump()" class="d-block alert alert-success text-center fw-bold my-5">Don't know your PINCODE?
+        Click here to find centers near your current location.</a>
+    <% elsif @sessions.empty? %>
+      <div class="alert alert-warning text-center fw-bold my-4">Couldn't find any slots for those options. Try something
+        else?
       </div>
     <% end %>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      <% @sessions.each do |session| %>
+        <% center = @centers[session['center_id']] %>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-header py-3 bg-light text-muted small d-flex justify-content-between align-items-center">
+              <span class="fw-bold p-1 px-2 rounded border border-dark text-dark"><%= session['vaccine'] %></span>
+              <span class="p-1 px-2 rounded border fw-bold <%= session['min_age_limit'].to_i > 18 ? 'border-danger text-danger' : 'border-success text-success' %>">Age: <%= session['min_age_limit'].to_i %>&plus;</span>
+              <span class="p-1 px-2 rounded border fw-bold <%= center['fee_type'].to_s.upcase == 'FREE' ? 'border-success text-success' : 'border-warning text-warning' %>"><%= center['fee_type'].to_s.upcase %></span>
+            </div>
+            <div class="card-body d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="card-title mb-2">
+                  <span><%= center['name'] %></span>
+                </h6>
+                <div class="card-text small text-muted">
+                  <div><%= center['address'].split(',').map(&:strip).join(', ') %></div>
+                  <div><%= ['block_name', 'district_name'].map { |k| center[k] }.join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s + '.' %></div>
+                  <% if @session_distances[session['session_id']].to_i > 0 %>
+                    <div class="fw-bold">~<%= @session_distances[session['session_id']].to_i %> km away.</div>
+                  <% end %></div>
+              </div>
+
+              <% if session['available_capacity'].to_i > 0 %>
+                <div class="ms-3 bg-success py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center">
+                  <div class="text-light text-center h2 mb-0" id="<%= session['session_id'] %>"><%= session['available_capacity'].to_i %></div>
+                  <div class="text-light text-center">available</div>
+                </div>
+              <% else %>
+                <div class="ms-3 rounded bg-danger h-100 d-flex flex-column justify-content-center align-items-center">
+                  <div class="text-light text-center h5 mb-0" style="width: 4em !important;">FULL</div>
+                </div>
+              <% end %>
+            </div>
+            <% slot_times = session['slots'].flat_map { |s| s.split('-') }.map { |t| DateTime.parse(t) } %>
+            <% unless slot_times.empty? %>
+              <div class="card-footer text-end text-muted"><%= pluralize session['slots'].size, 'slot' %>
+                from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="text-center bg-light p-3 py-4 rounded mt-4">
+    <p>Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>.</p>
+    <p class="mb-0">Code on
+      <a href="https://github.com/sudhirj/shots">GitHub</a>. Data from the
+      <a href="https://apisetu.gov.in/public/marketplace/api/cowin/cowin-public-v2">CoWIN Public APIs</a>. Some
+      location data is sourced from
+      <a href="http://download.geonames.org/export/">GeoNames under the Creative Commons License</a>. Add
+      <code>format=json</code> to query parameters to get JSON.</p>
   </div>
 </div>
 
-<% unless (@lat.zero? && @lon.zero?) || @sessions.empty? %>
-  <div class="container my-5">
-    <div class="text-center bg-light p-3 py-4 rounded">
-      <p>Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>. Code on
-        <a href="https://github.com/sudhirj/shots">GitHub</a>.</p>
-      <p>Data from the
-        <a href="https://apisetu.gov.in/public/marketplace/api/cowin/cowin-public-v2">CoWIN Public APIs</a>.
-      </p>
-      <p>Some location data is sourced from
-        <a href="http://download.geonames.org/export/">GeoNames under the Creative Commons License</a>.</p>
-      <p><a href="https://twitter.com/sudhirj">Contact me</a> if you find this useful, I'll try to get govt. permission
-        to
-        finish the full registration process right here.</p>
-      <p class="mb-0">Add <code>format=json</code> to query parameters to get JSON.</p>
-    </div>
-  </div>
+<% @centers.map { _2['district_id'] }.compact.uniq.each do |id| %>
+  <input type="hidden" value="<%= "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{id}&date=#{@date.strftime('%d-%m-%Y')}".html_safe %>" name="fetchSource"/>
 <% end %>
+
+<script>
+    var jsonify = function (data) {
+        return data.json()
+    };
+    var recheck = function () {
+        document.getElementsByName('fetchSource').forEach(function (v) {
+            url = v.getAttribute('value')
+            fetch(url).then(jsonify).then(function (data) {
+                data.centers.forEach(function (center) {
+                    center.sessions.forEach(function (session) {
+                        var holder = document.getElementById(session.session_id)
+                        if (holder) {
+                            holder.innerText = session.available_capacity;
+                        }
+                    })
+                })
+            })
+        });
+    }
+    var scheduleRecheck = function () {
+        setTimeout(function () {
+            recheck();
+            scheduleRecheck();
+        }, 60000)
+    }
+    recheck();
+    scheduleRecheck();
+</script>
+

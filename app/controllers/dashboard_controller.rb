@@ -31,14 +31,16 @@ class DashboardController < ApplicationController
 
     unless session_ids.empty? || (@lat.zero? && @lon.zero?)
       sessions = $redis.with { |r| r.hmget "dates/#{date}/sessions", session_ids }
-      sessions = sessions.map { |data| JSON.parse(data) }.each_with_object({}) { |s, memo| memo[s['session_id']] = s }
+      sessions = sessions.map { JSON.parse(_1) }.each_with_object({}) do |s, memo|
+        memo[s['session_id']] = s
+      end
       @sessions = session_ids.map { |id| sessions[id] }
 
       center_ids = @sessions.map { |s| s['center_id'] }.uniq
       centers = $redis.with { |r| r.hmget 'centers', center_ids }
-      @centers = centers.map do |data|
-                   JSON.parse(data)
-                 end.each_with_object({}) { |c, memo| memo[c['center_id']] = c.except('sessions', 'lat', 'long') }
+      @centers = centers.map { JSON.parse(_1) }.each_with_object({}) do |c, memo|
+        memo[c['center_id']] = c.except('sessions', 'lat', 'long')
+      end
 
       if params[:vaccine].present? && params[:vaccine] != 'ANY'
         @sessions = @sessions.select { |s| s['vaccine'] == params[:vaccine].to_s.upcase }
