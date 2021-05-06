@@ -91,8 +91,7 @@
             </div>
             <% slot_times = session['slots'].flat_map { |s| s.split('-') }.map { |t| DateTime.parse(t) } %>
             <% unless slot_times.empty? %>
-              <div class="card-footer text-end text-muted"><%= pluralize session['slots'].size, 'slot' %>
-                from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
+              <div class="card-footer text-end text-muted">Open from <%= slot_times.first.strftime('%I:%M %p') %> to <%= slot_times.last.strftime('%I:%M %p') %></div>
             <% end %>
           </div>
         </div>
