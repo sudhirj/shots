@@ -4,65 +4,62 @@ agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 F
 
 namespace :loadup do
   task :states do
-    $redis.with do |redis|
-      states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states',
-                            headers: { 'User-Agent' => agent })
-      pp states
-      redis.pipelined do
-        states['states'].each do |state|
-          redis.hset 'states', state['state_id'], state['state_name']
-        end
+    states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states',
+                          headers: { 'User-Agent' => agent })
+    pp states
+    states['states'].each do |state|
+      State.find_or_create_by(id: state['state_id'].to_i) do |s|
+        s.name = state['state_name']
       end
     end
   end
 
   task :districts do
-    $redis.with do |redis|
-      states = redis.hgetall 'states'
-      redis.pipelined do
-        states.each do |id, _state_name|
-          districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{id}",
-                                   headers: { 'User-Agent' => agent })
-          pp districts
-          districts['districts'].each do |district|
-            redis.hset 'districts', district['district_id'], district['district_name']
-          end
+    State.all.each do |state|
+      districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{state.id}",
+                               headers: { 'User-Agent' => agent })
+      pp districts
+      districts['districts'].each do |district|
+        District.find_or_create_by(id: district['district_id'].to_i) do |d|
+          d.name = district['district_name']
+          d.state = state
         end
       end
     end
   end
 
   task :centers do
-    $redis.with do |redis|
-      districts = redis.hkeys 'districts'
-      districts.shuffle.each_with_index do |id, idx|
-        centers = HTTParty.get(
-          "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
-        )
-        break if centers.code != 200
+    District.all.shuffle.each_with_index do |district, idx|
+      centers_data = HTTParty.get(
+        "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{district.id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
+      )
+      break if centers_data.code != 200
 
-        puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
-        pincodes = centers['centers'].to_a.map { _1['pincode'] }
-        positions = redis.geopos 'geopins', pincodes
-        pincode_map = pincodes.zip(positions).each_with_object({}) do |c, memo|
-          memo[c.first] = c.last || []
+      pp centers_data
+      puts "Fetched No. #{district.id} / #{district.name}, #{idx + 1}/#{District.count}"
+      centers_data['centers'].to_a.each do |center_data|
+        center = Center.find_or_initialize_by(id: center_data['center_id'].to_i) do |c|
+          c.name = center_data['name']
+          c.address = center_data['address']
+          c.block = center_data['block_name']
+          c.pincode = center_data['pincode']
+          c.open = Tod::TimeOfDay.try_parse(center_data['from'])
+          c.close = Tod::TimeOfDay.try_parse(center_data['to'])
+          c.fee_type = center_data['fee_type'].to_s.upcase
+          c.district = district
         end
-        pp centers if centers['centers'].nil?
-        redis.pipelined do
-          centers['centers'].to_a.each do |center|
-            redis.hset 'centers', center['center_id'], center.merge(district_id: id.to_i).to_json
-            position = pincode_map[center['pincode']]
-            center['sessions'].each do |session|
-              redis.geoadd "geosessions/#{session['date']}", position.first.to_f, position.last.to_f,
-                           session['session_id']
-              redis.hset "dates/#{session['date']}/sessions", session['session_id'],
-                         session.merge(center_id: center['center_id']).to_json
-            end
-          end
+        center.save!
+        center_data['sessions'].to_a.each do |session_data|
+          center.sessions.find_or_initialize_by(id: session_data['session_id']) do |s|
+            s.date = Date.parse(session_data['date'])
+            s.availability = session_data['available_capacity']
+            s.min_age = session_data['min_age_limit']
+            s.vaccine = session_data['vaccine']
+          end.save!
         end
-
-        sleep 5
       end
+
+      sleep 5
     end
   end
 
@@ -74,39 +71,23 @@ namespace :loadup do
     end
   end
 
-  task :geopin do
-    $redis.with do |redis|
-      redis.pipelined do
-        CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
-          redis.geoadd 'geopins', row[10], row[9], row[1]
-          pp [row[1], row[9], row[10]]
+  task :geopins do
+    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
+      Pincode.find_or_initialize_by(id: row[1].to_i) do |pc|
+        pc.lat = row[9].to_f
+        pc.lon = row[10].to_f
+      end.save!
+    end
+  end
+
+  task geoindex: [:environment] do
+    $redis.with do |r|
+      r.pipelined do
+        Pincode.find_each do |pc|
+          r.geoadd 'geo/pincodes', pc.lon, pc.lat, pc.id
         end
       end
     end
   end
 
-  task :dump_centers do
-    CSV.open(Rails.root.join('centers.csv'), 'w') do |csv|
-      centers = $redirect.hgetall 'centers'
-      centers.each do |_id, center_json|
-        center = JSON.parse(center_json)
-        csv << %w[center_id name address block_name district_name state_name pincode].map do |k|
-          center[k]
-        end
-      end
-    end
-  end
-
-  task :shift do
-    dest = Redis.new(url: ENV['REDIS_URL'], ssl_params: { verify_mode: OpenSSL::SSL::VERIFY_NONE })
-    src = Redis.new(url: 'redis://localhost:6379')
-
-    dest.pipelined do
-      %w[states districts centers].each do |key|
-        src.hgetall(key).each do |state|
-          dest.hset key, state
-        end
-      end
-    end
-  end
 end
