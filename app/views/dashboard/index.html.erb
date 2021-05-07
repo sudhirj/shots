@@ -75,7 +75,7 @@
                     <div><%= center['address'].split(',').map(&:strip).join(', ') %></div>
                     <div><%= %w[block_name district_name].map { |k| center[k] }.join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s + '.' %></div>
                     <% if @session_distances[session['session_id']].to_i > 0 %>
-                      <div class="fw-bold">~<%= @session_distances[session['session_id']].to_i %> km away.</div>
+                      <div class="fw-bold mt-2">~<%= @session_distances[session['session_id']].to_i %> km away.</div>
                     <% end %></div>
                 </div>
                 <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none ms-3 py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center <%= session['available_capacity'].zero? ? 'bg-danger' : 'bg-success' %> ">
