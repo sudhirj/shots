@@ -7,7 +7,7 @@ namespace :loadup do
     $redis.with do |redis|
       states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states',
                             headers: { 'User-Agent' => agent })
-      puts states
+      pp states
       redis.pipelined do
         states['states'].each do |state|
           redis.hset 'states', state['state_id'], state['state_name']
@@ -23,6 +23,7 @@ namespace :loadup do
         states.each do |id, _state_name|
           districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{id}",
                                    headers: { 'User-Agent' => agent })
+          pp districts
           districts['districts'].each do |district|
             redis.hset 'districts', district['district_id'], district['district_name']
           end
@@ -41,14 +42,14 @@ namespace :loadup do
         break if centers.code != 200
 
         puts "Fetched No. #{id}, #{idx + 1}/#{districts.size}"
-        pp centers['centers']
         pincodes = centers['centers'].to_a.map { _1['pincode'] }
         positions = redis.geopos 'geopins', pincodes
         pincode_map = pincodes.zip(positions).each_with_object({}) do |c, memo|
           memo[c.first] = c.last || []
         end
+        pp centers if centers['centers'].nil?
         redis.pipelined do
-          centers['centers'].each do |center|
+          centers['centers'].to_a.each do |center|
             redis.hset 'centers', center['center_id'], center.merge(district_id: id.to_i).to_json
             position = pincode_map[center['pincode']]
             center['sessions'].each do |session|
@@ -62,6 +63,14 @@ namespace :loadup do
 
         sleep 5
       end
+    end
+  end
+
+  task :loopy do
+    loop do
+      Rake::Task['loadup:states'].execute
+      Rake::Task['loadup:districts'].execute
+      Rake::Task['loadup:centers'].execute
     end
   end
 

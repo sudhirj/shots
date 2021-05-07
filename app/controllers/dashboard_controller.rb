@@ -39,7 +39,7 @@ class DashboardController < ApplicationController
       center_ids = @sessions.map { |s| s['center_id'] }.uniq
       centers = $redis.with { |r| r.hmget 'centers', center_ids }
       @centers = centers.map { JSON.parse(_1) }.each_with_object({}) do |c, memo|
-        memo[c['center_id']] = c.except('sessions', 'lat', 'long')
+        memo[c['center_id']] = c.except('lat', 'long')
       end
 
       if params[:vaccine].present? && params[:vaccine] != 'ANY'
