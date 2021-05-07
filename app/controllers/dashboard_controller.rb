@@ -27,7 +27,7 @@ class DashboardController < ApplicationController
       memo[data.first.to_i] = data.last.to_f
     end
 
-    @sessions = Session.includes(:center).where(center: { pincode: pincode_distance_map.keys })
+    @sessions = Session.includes(:center).where(center: { pincode: pincode_distance_map.keys }, date: @date)
     @sessions = @sessions.where('min_age <= ?', @age)
     if params[:vaccine].present? && params[:vaccine] != 'ANY'
       @sessions = @sessions.where(vaccine: params[:vaccine].to_s.upcase)
