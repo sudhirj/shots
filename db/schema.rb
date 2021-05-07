@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_07_102839) do
+ActiveRecord::Schema.define(version: 2021_05_07_190739) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -24,8 +24,12 @@ ActiveRecord::Schema.define(version: 2021_05_07_102839) do
     t.time "close"
     t.string "fee_type"
     t.bigint "district_id", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", precision: 6, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: 6, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.string "map_url"
+    t.string "map_image"
+    t.decimal "lat"
+    t.decimal "lon"
     t.index ["district_id"], name: "index_centers_on_district_id"
     t.index ["pincode"], name: "index_centers_on_pincode"
   end
@@ -51,8 +55,8 @@ ActiveRecord::Schema.define(version: 2021_05_07_102839) do
     t.string "vaccine", null: false
     t.integer "min_age", null: false
     t.bigint "center_id", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.datetime "updated_at", precision: 6, null: false
+    t.datetime "created_at", precision: 6, default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.datetime "updated_at", precision: 6, default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.index ["center_id"], name: "index_sessions_on_center_id"
   end
 
