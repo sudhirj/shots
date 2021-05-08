@@ -105,8 +105,8 @@ namespace :loadup do
     ActiveRecord::Base.logger = Logger.new($stdout)
 
     Center.find_each do |center|
-      pincode = Pincode.find(center.pincode)
-      next if pincode.nil? || pincode.map_image.present?
+      pincode = Pincode.find_or_create_by!(id: center.pincode)
+      next if pincode.map_image.present?
 
       doc = Nokogiri::HTML(URI.open(pincode.default_maps_link))
       image = doc.css('meta[property="og:image"]').first.attr('content')
