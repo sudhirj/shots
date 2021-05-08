@@ -102,11 +102,16 @@ namespace :loadup do
   end
 
   task mapmaker: [:environment] do
-    Center.where(map_image: nil).find_each do |center|
-      doc = Nokogiri::HTML(URI.open(center.pincode_maps_link))
+    ActiveRecord::Base.logger = Logger.new($stdout)
+
+    Center.find_each do |center|
+      pincode = Pincode.find(center.pincode)
+      next if pincode.nil? || pincode.map_image.present?
+
+      doc = Nokogiri::HTML(URI.open(pincode.default_maps_link))
       image = doc.css('meta[property="og:image"]').first.attr('content')
-      pp center.pincode_maps_link, image
-      center.update map_url: center.pincode_maps_link, map_image: image
+      pp pincode.default_maps_link, image
+      pincode.update map_url: pincode.default_maps_link, map_image: image
     end
   end
 end
