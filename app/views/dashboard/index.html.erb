@@ -55,61 +55,64 @@
         else?
       </div>
     <% end %>
-    <div class="row row-cols-1 row-cols-lg-3 g-4">
-      <% @session_distances.each do |session_distance| %>
-        <% session_id, distance = session_distance %>
-        <% session = @sessions[session_id] %>
-        <% center = session.center %>
-        <div class="col">
-          <div class="card h-100">
-            <div class="card-header py-3 bg-light text-muted small d-flex justify-content-between align-items-center">
-              <span class="fw-bold p-1 px-2 rounded border border-dark text-dark"><%= session.vaccine %></span>
-              <span class="p-1 px-2 rounded border fw-bold <%= session.min_age > 18 ? 'border-danger text-danger' : 'border-success text-success' %>">Age: <%= session.min_age %>&plus;</span>
-              <span class="p-1 px-2 rounded border fw-bold <%= center.fee_type.to_s.upcase == 'FREE' ? 'border-success text-success' : 'border-warning text-warning' %>"><%= center.fee_type.to_s.upcase %></span>
-            </div>
-            <div class="card-body d-flex flex-column justify-content-between">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="card-title mb-2">
-                    <span><%= center['name'] %></span>
-                  </h6>
-                  <div class="card-text small text-muted">
-                    <div><%= center.address.split(',').map(&:strip).join(', ') %></div>
-                    <div><%= [center.block].join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s %></div>
-                    <% if distance.to_i > 0 %>
-                      <div class="fw-bold mt-2">~<%= distance.to_i %> km away.</div>
-                    <% end %></div>
-                </div>
-                <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none font-monospace ms-3 py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center <%= session.availability.zero? ? 'bg-danger' : 'bg-success' %> ">
-                  <div class="text-light text-center"><%= Date::DAYNAMES[@date.wday][0..2].upcase %>&nbsp;/&nbsp;<%= @date.day.ordinalize %></div>
-                  <div class="text-light text-center h2 my-2" id="<%= session.id %>"><%= session.availability.to_i %></div>
-                  <div class="text-light text-center">available</div>
-                </a>
+    <% unless @sessions.empty? || @lat.zero? || @lon.zero? %>
+      <div class="row row-cols-1 row-cols-lg-3 g-4">
+        <% @session_distances.each do |session_distance| %>
+          <% session_id, distance = session_distance %>
+          <% session = @sessions[session_id] %>
+          <% center = session.center %>
+          <div class="col">
+            <div class="card h-100">
+              <div class="card-header py-3 bg-light text-muted small d-flex justify-content-between align-items-center">
+                <span class="fw-bold p-1 px-2 rounded border border-dark text-dark"><%= session.vaccine %></span>
+                <span class="p-1 px-2 rounded border fw-bold <%= session.min_age > 18 ? 'border-danger text-danger' : 'border-success text-success' %>">Age: <%= session.min_age %>&plus;</span>
+                <span class="p-1 px-2 rounded border fw-bold <%= center.fee_type.to_s.upcase == 'FREE' ? 'border-success text-success' : 'border-warning text-warning' %>"><%= center.fee_type.to_s.upcase %></span>
               </div>
-              <%# other_sessions = center['sessions'].to_a.select { |s| Date.parse(s['date']) >= Date.today }.select { |s| Date.parse(s['date']) != @date }.select { |s| %w[vaccine min_age_limit fee_type].all? { |k| s[k] == session[k] } } %>
-              <%# unless other_sessions.empty? %>
-              <!--                <div class="d-flex align-items-center justify-content-between mt-3">-->
-              <%# other_sessions.each do |sess| %>
-              <%# dt = Date.parse(sess['date']) %>
-              <!--                    <a href="https://selfregistration.cowin.gov.in" target="_blank" class="bg-light p-2 rounded px-lg-3 d-block text-decoration-none">-->
-              <!--                      <div class="text-center small text-muted"><%#= Date::DAYNAMES[dt.wday][0..2].upcase %></div>-->
-              <!--                      <div id="<%#= sess['session_id'] %>" class="text-center my-1 fw-bold <%#= sess['available_capacity'].zero? ? 'text-danger' : 'text-success' %> "><%#= sess['available_capacity'] %></div>-->
-              <!--                      <div class="text-center small text-muted"><%#= dt.day.ordinalize %></div>-->
-              <!--                    </a>-->
-              <%# end %>
-              <!--                </div>-->
-              <%# end %>
+              <div class="card-body d-flex flex-column justify-content-between">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="card-title mb-2">
+                      <span><%= center['name'] %></span>
+                    </h6>
+                    <div class="card-text small text-muted">
+                      <div><%= center.address.split(',').map(&:strip).join(', ') %></div>
+                      <div><%= [center.block].join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s %></div>
+                      <% if distance.to_i > 0 %>
+                        <div class="fw-bold mt-2">~<%= distance.to_i %> km away.</div>
+                      <% end %></div>
+                  </div>
+                  <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none font-monospace ms-3 py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center <%= session.availability.zero? ? 'bg-danger' : 'bg-success' %> ">
+                    <div class="text-light text-center"><%= Date::DAYNAMES[@date.wday][0..2].upcase %>&nbsp;/&nbsp;<%= @date.day.ordinalize %></div>
+                    <div class="text-light text-center h2 my-2" id="<%= session.id %>"><%= session.availability.to_i %></div>
+                    <div class="text-light text-center">available</div>
+                  </a>
+                </div>
+                <%# other_sessions = center['sessions'].to_a.select { |s| Date.parse(s['date']) >= Date.today }.select { |s| Date.parse(s['date']) != @date }.select { |s| %w[vaccine min_age_limit fee_type].all? { |k| s[k] == session[k] } } %>
+                <%# unless other_sessions.empty? %>
+                <!--                <div class="d-flex align-items-center justify-content-between mt-3">-->
+                <%# other_sessions.each do |sess| %>
+                <%# dt = Date.parse(sess['date']) %>
+                <!--                    <a href="https://selfregistration.cowin.gov.in" target="_blank" class="bg-light p-2 rounded px-lg-3 d-block text-decoration-none">-->
+                <!--                      <div class="text-center small text-muted"><%#= Date::DAYNAMES[dt.wday][0..2].upcase %></div>-->
+                <!--                      <div id="<%#= sess['session_id'] %>" class="text-center my-1 fw-bold <%#= sess['available_capacity'].zero? ? 'text-danger' : 'text-success' %> "><%#= sess['available_capacity'] %></div>-->
+                <!--                      <div class="text-center small text-muted"><%#= dt.day.ordinalize %></div>-->
+                <!--                    </a>-->
+                <%# end %>
+                <!--                </div>-->
+                <%# end %>
+              </div>
+
+
+              <div class="card-footer text-end text-muted">Open from <%= center.open.strftime('%I:%M %p') %>
+                to <%= center.close.strftime('%I:%M %p') %></div>
+
             </div>
-
-
-            <div class="card-footer text-end text-muted">Open from <%= center.open.strftime('%I:%M %p') %>
-              to <%= center.close.strftime('%I:%M %p') %></div>
-
           </div>
-        </div>
-      <% end %>
-    </div>
+        <% end %>
+      </div>
+    <% end %>
   </div>
+
 
   <div class="text-center bg-light p-3 py-4 rounded mt-4">
     <p>Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>.</p>
