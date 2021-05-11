@@ -35,7 +35,7 @@ class DashboardController < ApplicationController
 
     @session_distances = @sessions.each_with_object({}) do |sess, memo|
       memo[sess.id] = pincode_distance_map[sess.pincode].round
-    end.sort_by { _2 }
+    end.sort_by { [_2, _1] }
 
     @sessions = @sessions.each_with_object({}) do
       _2[_1.id] = _1

@@ -32,8 +32,10 @@
         <input name="pincode" value="<%= params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
         <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
       </h1>
-      <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
-      <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
+      <% if params[:pincode].blank? && !@lat.zero? && !@lon.zero? %>
+        <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
+        <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
+      <% end %>
     </form>
     <% if @lat == 0 && @lon == 0 %>
       <script>
