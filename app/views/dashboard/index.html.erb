@@ -42,9 +42,20 @@
           window.jump = function () {
               window.navigator.geolocation
                   .getCurrentPosition(function (pos) {
-                      document.getElementById('lat').setAttribute('value', pos.coords.latitude);
-                      document.getElementById('lon').setAttribute('value', pos.coords.longitude);
-                      document.getElementById('opts').submit();
+                      var lat = document.createElement("input");
+                      lat.setAttribute("type", "hidden");
+                      lat.setAttribute("name", "lat");
+                      lat.setAttribute("value", 5);
+
+                      var lon = document.createElement("input");
+                      lon.setAttribute("type", "hidden");
+                      lon.setAttribute("name", "lon");
+                      lon.setAttribute("value", 7);
+
+                      var form = document.getElementById('opts');
+                      form.appendChild(lat);
+                      form.appendChild(lon);
+                      form.submit();
                   }, function () {
                       alert("Sorry, couldn't access your location. Try to find your PINCODE?")
                   });
