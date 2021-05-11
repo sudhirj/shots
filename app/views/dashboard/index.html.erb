@@ -72,7 +72,7 @@
                 <div class="d-flex justify-content-between align-items-center">
                   <div>
                     <h6 class="card-title mb-2">
-                      <span><%= center['name'] %></span>
+                      <span><%= center['name'].to_s.upcase %></span>
                     </h6>
                     <div class="card-text small text-muted">
                       <div><%= center.address.split(',').map(&:strip).join(', ') %></div>
