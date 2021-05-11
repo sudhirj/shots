@@ -3,7 +3,7 @@
 class DashboardController < ApplicationController
   # params: date, count, distance, pincode, lat, lon
   def index
-    @date = params[:date].blank? ? Date.today : Date.parse(params[:date])
+    @date = params[:date].blank? ? Time.zone.today : Date.parse(params[:date])
     @lat = params[:lat].present? ? params[:lat].to_f : 0
     @lon = params[:lon].present? ? params[:lon].to_f : 0
     radius_km = [[params[:distance].to_i, 100].min, 25].max
