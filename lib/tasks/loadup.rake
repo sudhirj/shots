@@ -118,19 +118,22 @@ namespace :loadup do
   task geodata: [:environment] do
     ActiveRecord::Base.logger = Logger.new($stdout)
     Geodatum.delete_all
-    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
-      Geodatum.upsert({
-                        pincode: row[1].to_i,
-                        place: row[2],
-                        admin1: row[3],
-                        admin2: row[5],
-                        admin3: row[7],
-                        lat: row[9].to_f,
-                        lon: row[10].to_f,
-                        accuracy: row[11].to_i,
-                        created_at: Time.now,
-                        updated_at: Time.now
-                      }, unique_by: [:id])
+    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each_slice(10000) do |rows|
+      insertions = rows.map do |row|
+        {
+          pincode: row[1].to_i,
+          place: row[2],
+          admin1: row[3],
+          admin2: row[5],
+          admin3: row[7],
+          lat: row[9].to_f,
+          lon: row[10].to_f,
+          accuracy: row[11].to_i,
+          created_at: Time.now,
+          updated_at: Time.now
+        }
+      end
+      Geodatum.insert_all!(insertions)
     end
   end
 end
