@@ -10,9 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_08_181440) do
+ActiveRecord::Schema.define(version: 2021_05_15_123928) do
 
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_stat_statements"
   enable_extension "plpgsql"
 
   create_table "centers", force: :cascade do |t|
@@ -40,6 +41,19 @@ ActiveRecord::Schema.define(version: 2021_05_08_181440) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["state_id"], name: "index_districts_on_state_id"
+  end
+
+  create_table "geodata", force: :cascade do |t|
+    t.integer "pincode"
+    t.string "place"
+    t.string "admin1"
+    t.string "admin2"
+    t.string "admin3"
+    t.decimal "lat"
+    t.decimal "lon"
+    t.integer "accuracy"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
   end
 
   create_table "pincodes", force: :cascade do |t|

@@ -114,4 +114,35 @@ namespace :loadup do
       pincode.update map_url: pincode.default_maps_link, map_image: image
     end
   end
+
+  task geodata: [:environment] do
+    ActiveRecord::Base.logger = Logger.new($stdout)
+    Geodatum.delete_all
+    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each do |row|
+      Geodatum.upsert({
+                        pincode: row[1].to_i,
+                        place: row[2],
+                        admin1: row[3],
+                        admin2: row[5],
+                        admin3: row[7],
+                        lat: row[9].to_f,
+                        lon: row[10].to_f,
+                        accuracy: row[11].to_i,
+                        created_at: Time.now,
+                        updated_at: Time.now
+                      }, unique_by: [:id])
+    end
+  end
 end
+# 0 country code      : iso country code, 2 characters
+# 1 postal code       : varchar(20)
+# 2 place name        : varchar(180)
+# 3 admin name1       : 1. order subdivision (state) varchar(100)
+# 4 admin code1       : 1. order subdivision (state) varchar(20)
+# 5 admin name2       : 2. order subdivision (county/province) varchar(100)
+# 6 admin code2       : 2. order subdivision (county/province) varchar(20)
+# 7 admin name3       : 3. order subdivision (community) varchar(100)
+# 8 admin code3       : 3. order subdivision (community) varchar(20)
+# 9 latitude          : estimated latitude (wgs84)
+# 10 longitude         : estimated longitude (wgs84)
+# 11 accuracy          : accuracy of lat/lng from 1=estimated, 4=geonameid, 6=centroid of addresses or

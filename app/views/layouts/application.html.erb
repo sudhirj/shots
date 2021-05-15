@@ -5,13 +5,46 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <%= csrf_meta_tags %>
   <%= csp_meta_tag %>
-
+  <link rel="stylesheet" type="text/css" href="https://cloud.typography.com/7630838/6777032/css/fonts.css"/>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.0-beta3/css/bootstrap.min.css" integrity="sha512-N415hCJJdJx+1UBfULt+i+ihvOn42V/kOjOpp1UTh4CZ70Hx5bDlKryWaqEKfY/8EYOu/C2MuyaluJryK1Lb5Q==" crossorigin="anonymous"/>
-  <link rel="canonical" href="<%=canonicalize(request.url)%>" />
+  <style>
+      :root {
+          --bs-font-sans-serif: "Decimal A", "Decimal B", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+          --bs-font-monospace: "Operator Mono SSm A", "Operator Mono SSm B", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+
+      body {
+          font-style: normal;
+          font-weight: 300;
+      }
+
+      h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+          font-family: "Gotham XNarrow A", "Gotham XNarrow B";
+          font-style: normal;
+          font-weight: 700;
+      }
+
+      .font-monospace {
+          font-family: "Operator Mono SSm A", "Operator Mono SSm B";
+          font-style: normal;
+          font-weight: 400;
+      }
+
+      .display-1, .display-2, .display-3, .display-4, .display-5, .display-6 {
+          font-family: "Decimal A", "Decimal B";
+          font-style: normal;
+          font-weight: 800;
+      }
+
+
+  </style>
+  <link rel="canonical" href="<%= canonicalize(request.url) %>"/>
 </head>
 
 <body style="height: 100%">
 <%= yield %>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f52b40a6beaa4b33a019839a09115043"}'></script><!-- End Cloudflare Web Analytics -->
+<!-- Cloudflare Web Analytics -->
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "f52b40a6beaa4b33a019839a09115043"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
+
