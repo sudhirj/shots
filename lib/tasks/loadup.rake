@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
-agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0'
+AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:88.0) Gecko/20100101 Firefox/88.0'
 
 namespace :loadup do
   task states: [:environment] do
-    states = HTTParty.get('https://cdn-api.co-vin.in/api/v2/admin/location/states',
-                          headers: { 'User-Agent' => agent })
+    states = keep_trying_to_get('https://cdn-api.co-vin.in/api/v2/admin/location/states')
     pp states
     states['states'].each do |state|
       State.find_or_create_by(id: state['state_id'].to_i) do |s|
@@ -16,8 +15,7 @@ namespace :loadup do
 
   task districts: [:environment] do
     State.all.each do |state|
-      districts = HTTParty.get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{state.id}",
-                               headers: { 'User-Agent' => agent })
+      districts = keep_trying_to_get("https://cdn-api.co-vin.in/api/v2/admin/location/districts/#{state.id}")
       pp districts
       districts['districts'].each do |district|
         District.find_or_create_by(id: district['district_id'].to_i) do |d|
@@ -28,21 +26,23 @@ namespace :loadup do
     end
   end
 
+  def keep_trying_to_get(url)
+    data = {}
+    loop do
+      data = HTTParty.get(url, headers: { 'User-Agent' => AGENT })
+      break if data.code == 200
+
+      exponential_backoff *= 4
+      puts "Couldn't fetch data, sleeping for #{exponential_backoff} seconds..."
+      sleep exponential_backoff.seconds
+    end
+    data
+  end
+
   task centers: [:environment] do
     ActiveRecord::Base.logger = Logger.new($stdout)
     District.all.shuffle.each_with_index do |district, idx|
-      exponential_backoff = 1
-      centers_data = {}
-      loop do
-        centers_data = HTTParty.get(
-          "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{district.id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
-        )
-        break if centers_data.code == 200
-
-        exponential_backoff *= 4
-        puts "Couldn't fetch data, sleeping for #{exponential_backoff} seconds..."
-        sleep exponential_backoff.seconds
-      end
+      centers_data = keep_trying_to_get "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{district.id}&date=#{Date.today.strftime('%d-%m-%Y')}"
 
       pp centers_data
       puts "Fetched No. #{district.id} / #{district.name}, #{idx + 1}/#{District.count}"
