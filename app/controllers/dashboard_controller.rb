@@ -79,6 +79,17 @@ class DashboardController < ApplicationController
   end
 
   def jump
-    redirect_to pincode_path(params[:pincode]) if params[:pincode].present?
+    redirect_to pincode_path(params[:pincode]) if clean_pincode.present?
+  end
+
+  private
+
+  def clean_pincode
+    pincode = params[:pincode]
+    return nil if pincode.blank?
+    return nil if pincode.to_s.size != 6
+    return nil if pincode.to_i.to_s != pincode
+
+    pincode
   end
 end
