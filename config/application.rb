@@ -31,5 +31,6 @@ module Cowinner
     #
     config.time_zone = "Chennai"
     # config.eager_load_paths << Rails.root.join("extras")
+    config.middleware.insert_after ActionDispatch::Static, Rack::Deflater
   end
 end

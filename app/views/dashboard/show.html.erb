@@ -6,7 +6,7 @@
     <h1 class="display-5 text-center">Take The Shot!</h1>
     <% if @pincode_geodata.present? %>
       <h2 class="text-center h5 text-muted">COVID vaccination centers
-        near <%= @pincode_geodata.short_list.join(', ') %></h2>
+        near <span class="text-primary"><%= @pincode_geodata.short_list.join(', ') %></span></h2>
     <% end %>
   </header>
 
