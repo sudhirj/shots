@@ -1,3 +1,6 @@
+<% content_for :title do %>
+  <title>Take the Shot! Find vaccination centers near <%= @pincode_geodata.present? ? @pincode_geodata.short_list.join(', ') : [@pincode.to_s, 'India'].join(', ') %></title>
+<% end %>
 <div class="container">
   <header class="my-5">
     <h1 class="display-5 text-center">Take The Shot!</h1>
