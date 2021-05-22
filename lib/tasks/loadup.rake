@@ -28,6 +28,7 @@ namespace :loadup do
 
   def keep_trying_to_get(url)
     data = {}
+    exponential_backoff = 1
     loop do
       data = HTTParty.get(url, headers: { 'User-Agent' => AGENT })
       break if data.code == 200
