@@ -77,11 +77,12 @@ class DashboardController < ApplicationController
       @pincode_distance_map[center.pincode]
     end
 
-    @geodata = Geodatum.where(pincode: @center_session_groups.map(&:first).map(&:pincode).uniq).each_with_object({}) do |data, memo|
+    pincodes = @center_session_groups.map(&:first).map(&:pincode).to_set + [@pincode].to_set
+    geodata = Geodatum.where(pincode: pincodes.to_a).to_a
+    @geodata = geodata.each_with_object({}) do |data, memo|
       memo[data.pincode] = data unless memo[data.pincode].present? && memo[data.pincode].accuracy > data.accuracy
     end
-
-    @pincode_geodata = Geodatum.where(pincode: @pincode).order(:accuracy).last
+    @pincode_geodata = geodata.select { _1.pincode == @pincode }.max_by(&:accuracy)
   end
 
   def jump
