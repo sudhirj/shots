@@ -54,9 +54,15 @@ class DashboardController < ApplicationController
 
   def show
     @pincode = params[:pincode].to_i
-    pincodes_geodata = $redis.with do |r|
-      r.geosearch 'geo/pincodes', 'FROMMEMBER', @pincode, 'BYRADIUS', 25, 'km',
-                  'WITHDIST', 'ASC'
+
+    begin
+      pincodes_geodata = $redis.with do |r|
+        r.geosearch 'geo/pincodes', 'FROMMEMBER', @pincode, 'BYRADIUS', 25, 'km',
+                    'WITHDIST', 'ASC'
+      end
+    rescue StandardError
+      redirect_to root_path
+      return
     end
 
     @pincode_distance_map = pincodes_geodata.each_with_object({}) do |data, memo|
