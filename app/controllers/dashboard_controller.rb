@@ -77,4 +77,8 @@ class DashboardController < ApplicationController
 
     @pincode_geodata = Geodatum.where(pincode: @pincode).order(:accuracy).last
   end
+
+  def jump
+    redirect_to pincode_path(params[:pincode]) if params[:pincode].present?
+  end
 end

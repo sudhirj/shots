@@ -31,10 +31,18 @@ namespace :loadup do
   task centers: [:environment] do
     ActiveRecord::Base.logger = Logger.new($stdout)
     District.all.shuffle.each_with_index do |district, idx|
-      centers_data = HTTParty.get(
-        "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{district.id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
-      )
-      break if centers_data.code != 200
+      exponential_backoff = 1
+      centers_data = {}
+      loop do
+        centers_data = HTTParty.get(
+          "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{district.id}&date=#{Date.today.strftime('%d-%m-%Y')}", headers: { 'User-Agent' => agent }
+        )
+        break if centers_data.code == 200
+
+        exponential_backoff *= 4
+        puts "Couldn't fetch data, sleeping for #{exponential_backoff} seconds..."
+        sleep exponential_backoff.seconds
+      end
 
       pp centers_data
       puts "Fetched No. #{district.id} / #{district.name}, #{idx + 1}/#{District.count}"
@@ -69,8 +77,6 @@ namespace :loadup do
         end
       end
       Session.upsert_all(sessions, unique_by: [:id]) unless sessions.empty?
-
-      sleep 5
     end
   end
 
@@ -118,7 +124,7 @@ namespace :loadup do
   task geodata: [:environment] do
     ActiveRecord::Base.logger = Logger.new($stdout)
     Geodatum.delete_all
-    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each_slice(10000) do |rows|
+    CSV.open(Rails.root.join('IN.txt'), 'r', col_sep: "\t").each_slice(10_000) do |rows|
       insertions = rows.map do |row|
         {
           pincode: row[1].to_i,
