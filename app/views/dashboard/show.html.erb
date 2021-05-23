@@ -12,34 +12,39 @@
     <% end %>
   </header>
 
-  <%=render partial: 'dashboard/jump' %>
+  <%= render partial: 'dashboard/jump' %>
 
   <% @center_session_groups.each do |center, sessions| %>
-    <div class="py-4 border-bottom border-light">
-      <h3 class="text-uppercase h5 text-center mb-0"><%= center.name %></h3>
-      <% if @geodata[center.pincode].present? %>
-        <div class="small text-muted text-center">Near <%= @geodata[center.pincode].short_list.join(', ') + '.' %>
-          <% unless @pincode_distance_map[center.pincode].to_i.zero? %>
-            About <%= @pincode_distance_map[center.pincode].round %>&nbsp;km away.
-          <% end %></div>
-      <% else %>
-        <div class="small text-muted text-center"><%= center.address.split(',').map(&:strip).join(', ').split(' ').map(&:strip).join(' ') %></div>
-      <% end %>
-      <div class="d-flex justify-content-center my-3 small">
-        <% sessions.map(&:vaccine).uniq.sort.each do |vaccine| %>
-          <div class="border border-dark fw-bold rounded text-muted px-2 py-1 mx-1 bg-light bg-gradient"><%= vaccine %></div>
-        <% end %>
-        <% sessions.map(&:min_age).uniq.sort.take(1).each do |age| %>
-          <div class="border fw-bold rounded px-2 py-1 mx-1 bg-light bg-gradient <%= age > 18 ? 'text-danger border-danger' : 'text-success border-success' %>"><%= age %>&plus;</div>
-        <% end %>
+    <div class="py-4 border-bottom border-light d-md-flex flex-md-row">
+      <div class="flex-md-grow-1">
+        <!-- heading-->
+        <div class="text-center text-md-start">
+          <h3 class="text-uppercase h5 mb-0"><%= center.name %></h3>
+          <% if @geodata[center.pincode].present? %>
+            <div class="small text-muted">Near <%= @geodata[center.pincode].short_list.join(', ') + '.' %>
+              <% unless @pincode_distance_map[center.pincode].to_i.zero? %>
+                About <%= @pincode_distance_map[center.pincode].round %>&nbsp;km away.
+              <% end %></div>
+          <% else %>
+            <div class="small text-muted"><%= center.address.split(',').map(&:strip).join(', ').split(' ').map(&:strip).join(' ') %></div>
+          <% end %>
+        </div>
+        <!-- labels-->
+        <div class="d-flex justify-content-around my-3 small justify-content-md-start">
+          <% sessions.map(&:vaccine).uniq.sort.each do |vaccine| %>
+            <div class="border border-dark fw-bold rounded text-muted px-2 py-1 me-md-2 bg-light bg-gradient"><%= vaccine %></div>
+          <% end %>
+          <% sessions.map(&:min_age).uniq.sort.take(1).each do |age| %>
+            <div class="border fw-bold rounded px-2 py-1 bg-light me-md-2 bg-gradient <%= age > 18 ? 'text-danger border-danger' : 'text-success border-success' %>"><%= age %>&plus;</div>
+          <% end %>
+        </div>
       </div>
-
 
       <div class="d-flex flex-row justify-content-between align-items-center font-monospace fs-6">
         <% (Time.zone.today..(Time.zone.today + 5.days)).to_a.each do |date| %>
           <% count = sessions.select { _1.date == date }.sum(&:availability) %>
           <% empty = sessions.select { _1.date == date }.empty? %>
-          <div class="text-center bg-light bg-gradient p-2 rounded text-dark border border-2 <%= empty ? 'border-light' : (count.zero? ? 'border-danger' : 'border-success') %>">
+          <div class="text-center bg-light bg-gradient p-2 rounded ms-md-3 text-dark border border-2 <%= empty ? 'border-light' : (count.zero? ? 'border-danger' : 'border-success') %>">
             <div class="fw-bold small"><%= Date::DAYNAMES[date.wday][0..2].upcase %></div>
             <% if empty %>
               <div class="fs-5 my-1 fw-bold text-muted">&dash;</div>
