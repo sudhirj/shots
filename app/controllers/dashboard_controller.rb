@@ -86,6 +86,14 @@ class DashboardController < ApplicationController
   end
 
   def jump
+    if params[:lat].present? && params[:lon].present?
+      nearest_pincode = $redis.with do |r|
+        r.geosearch 'geo/pincodes', 'FROMLONLAT', params[:lon], params[:lat], 'BYRADIUS', 50, 'km', 'ASC', 'COUNT', 1
+      end
+      redirect_to nearest_pincode.empty? ? root_path : pincode_path(nearest_pincode.first)
+      return
+    end
+
     redirect_to pincode_path(params[:pincode]) if clean_pincode.present?
   end
 

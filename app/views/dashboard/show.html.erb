@@ -10,12 +10,12 @@
     <% end %>
   </header>
 
-  <%= form_tag jump_path, method: :post do |f| %>
-  <div class="input-group my-4">
-      <!--    <button class="btn btn-success bg-gradient" type="button">FIND ME</button>-->
+  <%= form_tag jump_path, method: :post, id: 'opts' do |f| %>
+    <div class="input-group my-4">
+      <button class="btn btn-success bg-gradient" type="button" onclick="jump()">FIND ME</button>
       <input type="text" class="form-control font-monospace fw-bold text-center" placeholder="PINCODE" aria-label="Pincode" value="<%= @pincode %>" name="pincode"/>
       <button class="btn btn-primary bg-gradient" type="submit">GO</button>
-  </div>
+    </div>
   <% end %>
 
   <% @center_session_groups.each do |center, sessions| %>
@@ -56,3 +56,26 @@
     </div>
   <% end %>
 </div>
+
+<script>
+    window.jump = function () {
+        const makeHiddenField = function (name, value) {
+            let field = document.createElement("input");
+            field.setAttribute("type", "hidden");
+            field.setAttribute("name", name);
+            field.setAttribute("value", value);
+            return field;
+        };
+        window.navigator.geolocation
+            .getCurrentPosition(function (pos) {
+                let lat = makeHiddenField('lat', pos.coords.latitude);
+                let lon = makeHiddenField('lon', pos.coords.longitude);
+                let form = document.getElementById('opts');
+                form.appendChild(lat);
+                form.appendChild(lon);
+                form.submit();
+            }, function () {
+                alert("Sorry, we couldn't access your location. Please try to find your pincode.")
+            });
+    }
+</script>
