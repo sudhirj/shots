@@ -1,176 +1,46 @@
 <% content_for :title do %>
-  <title>Take The Shot! Find COVID vaccination centers near you.</title>
+  <title>Take the Shot! Find vaccination centers near you.</title>
 <% end %>
-<div class="container d-flex flex-column justify-content-between h-100">
-  <div>
-    <form method="GET" action="<%= root_path %>" id="opts">
-      <h1 class="h3 my-3 my-lg-4" style="line-height: 2.618em;">Slots open on
-        <select class="form-select form-select-lg d-inline w-auto mx-1" name="date">
-          <% (Date.today..(6.days.from_now)).map(&:to_date).each do |date| %>
-            <option
-              <% if @date == date %> selected
-              <% end %> value="<%= date.to_s %>"><%= Date::DAYNAMES[date.wday] %>
-              / <%= date.to_formatted_s(:short) %></option>
-          <% end %>
-        </select> of <select class="form-select form-select-lg d-inline w-auto mx-1" name="vaccine">
-        <option value="ANY">any vaccine</option>
-        <option
-          <% if params[:vaccine].to_s.upcase == "COVISHIELD" %> selected
-          <% end %> value="COVISHIELD">COVISHIELD
-        </option>
-        <option
-          <% if params[:vaccine].to_s.upcase == "COVAXIN" %> selected
-          <% end %> value="COVAXIN">COVAXIN
-        </option>
-      </select> for people aged <select class="form-select form-select-lg d-inline w-auto mx-1" name="age">
-        <option
-          <% if params[:age].to_s == "45" %> selected
-          <% end %> value="45">45+
-        </option>
-        <option
-          <% if params[:age].to_s == "18" %> selected
-          <% end %> value="18">18+
-        </option>
-      </select> near
-        <input name="pincode" value="<%= params[:pincode] %>" type="text" class="form-control form-control-lg d-inline w-auto mx-1 font-monospace" style="width: 6em !important;" maxlength="6" placeholder="PINCODE" pattern="\d+"/>
-        <button class="btn btn-primary btn-lg mx-1">FIND &rarr;</button>
-      </h1>
-      <% if params[:pincode].blank? && !@lat.zero? && !@lon.zero? %>
-        <input type="hidden" name="lat" value="<%= @lat %>" id="lat"/>
-        <input type="hidden" name="lon" value="<%= @lon %>" id="lon"/>
-      <% end %>
-    </form>
-    <% if @lat == 0 && @lon == 0 %>
-      <script>
-          window.jump = function () {
-              window.navigator.geolocation
-                  .getCurrentPosition(function (pos) {
-                      var lat = document.createElement("input");
-                      lat.setAttribute("type", "hidden");
-                      lat.setAttribute("name", "lat");
-                      lat.setAttribute("value", 5);
+<div class="container">
+  <header class="my-5">
+    <a href="<%= root_path %>" class="text-dark text-decoration-none">
+      <h1 class="display-5 text-center">Take The Shot!</h1>
+    </a>
+    <h3 class="text-center px-2 my-3 h5 text-muted">Find a vaccination center near you and check availability.</h3>
+  </header>
 
-                      var lon = document.createElement("input");
-                      lon.setAttribute("type", "hidden");
-                      lon.setAttribute("name", "lon");
-                      lon.setAttribute("value", 7);
+  <%= form_tag jump_path, method: :post, id: 'opts' do |f| %>
+    <h4 class="text-center">Where are you?</h4>
+    <div class="input-group my-3">
+      <button class="btn btn-success bg-gradient" type="button" onclick="jump()">FIND ME</button>
+      <input type="text" class="form-control font-monospace fw-bold text-center" placeholder="PINCODE" aria-label="Pincode" value="<%= @pincode %>" name="pincode"/>
+      <button class="btn btn-primary bg-gradient" type="submit">GO</button>
+    </div>
+  <% end %>
+  <p class="text-center px-2 my-5 text-muted">We're working on scheduling, but for now you'll have to make your actual
+    booking on COWIN.</p>
 
-                      var form = document.getElementById('opts');
-                      form.appendChild(lat);
-                      form.appendChild(lon);
-                      form.submit();
-                  }, function () {
-                      alert("Sorry, couldn't access your location. Try to find your PINCODE?")
-                  });
-          }
-      </script>
-      <a href="javascript:jump()" class="d-block alert alert-success text-center fw-bold my-5">Don't know your PINCODE?
-        Click here to find centers near your current location.</a>
-    <% elsif @sessions.empty? %>
-      <div class="alert alert-warning text-center fw-bold my-4">Couldn't find any slots for those options. Try something
-        else?
-      </div>
-    <% end %>
-    <% unless @sessions.empty? || @lat.zero? || @lon.zero? %>
-      <div class="row row-cols-1 row-cols-lg-3 g-4">
-        <% @session_distances.each do |session_distance| %>
-          <% session_id, distance = session_distance %>
-          <% session = @sessions[session_id] %>
-          <% center = session.center %>
-          <div class="col">
-            <div class="card h-100">
-              <div class="card-header py-3 bg-light text-muted small d-flex justify-content-between align-items-center">
-                <span class="fw-bold p-1 px-2 rounded border border-dark text-dark"><%= session.vaccine %></span>
-                <span class="p-1 px-2 rounded border fw-bold <%= session.min_age > 18 ? 'border-danger text-danger' : 'border-success text-success' %>">Age: <%= session.min_age %>&plus;</span>
-                <span class="p-1 px-2 rounded border fw-bold <%= center.fee_type.to_s.upcase == 'FREE' ? 'border-success text-success' : 'border-warning text-warning' %>"><%= center.fee_type.to_s.upcase %></span>
-              </div>
-              <div class="card-body d-flex flex-column justify-content-between">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="card-title mb-2">
-                      <span><%= center['name'].to_s.upcase %></span>
-                    </h6>
-                    <div class="card-text small text-muted">
-                      <div><%= center.address.split(',').map(&:strip).join(', ') %></div>
-                      <div><%= [center.block].join(', ') %>&nbsp;&dash;&nbsp;<%= center['pincode'].to_s %></div>
-                      <% if distance.to_i > 0 %>
-                        <div class="fw-bold mt-2">~<%= distance.to_i %> km away.</div>
-                      <% end %></div>
-                  </div>
-                  <a href="https://selfregistration.cowin.gov.in" target="_blank" class="text-decoration-none font-monospace ms-3 py-3 px-3 rounded h-100 d-flex flex-column justify-content-around align-items-center <%= session.availability.zero? ? 'bg-danger' : 'bg-success' %> ">
-                    <div class="text-light text-center"><%= Date::DAYNAMES[@date.wday][0..2].upcase %>&nbsp;/&nbsp;<%= @date.day.ordinalize %></div>
-                    <div class="text-light text-center h2 my-2" id="<%= session.id %>"><%= session.availability.to_i %></div>
-                    <div class="text-light text-center">available</div>
-                  </a>
-                </div>
-                <%# other_sessions = center['sessions'].to_a.select { |s| Date.parse(s['date']) >= Date.today }.select { |s| Date.parse(s['date']) != @date }.select { |s| %w[vaccine min_age_limit fee_type].all? { |k| s[k] == session[k] } } %>
-                <%# unless other_sessions.empty? %>
-                <!--                <div class="d-flex align-items-center justify-content-between mt-3">-->
-                <%# other_sessions.each do |sess| %>
-                <%# dt = Date.parse(sess['date']) %>
-                <!--                    <a href="https://selfregistration.cowin.gov.in" target="_blank" class="bg-light p-2 rounded px-lg-3 d-block text-decoration-none">-->
-                <!--                      <div class="text-center small text-muted"><%#= Date::DAYNAMES[dt.wday][0..2].upcase %></div>-->
-                <!--                      <div id="<%#= sess['session_id'] %>" class="text-center my-1 fw-bold <%#= sess['available_capacity'].zero? ? 'text-danger' : 'text-success' %> "><%#= sess['available_capacity'] %></div>-->
-                <!--                      <div class="text-center small text-muted"><%#= dt.day.ordinalize %></div>-->
-                <!--                    </a>-->
-                <%# end %>
-                <!--                </div>-->
-                <%# end %>
-              </div>
-
-
-              <div class="card-footer text-end text-muted">Open from <%= center.open.strftime('%I:%M %p') %>
-                to <%= center.close.strftime('%I:%M %p') %></div>
-
-            </div>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
-
-
-  <div class="text-center bg-light p-3 py-4 rounded mt-4">
-    <p>Made in and for India by <a href="https://twitter.com/sudhirj">Sudhir Jonathan</a>.</p>
-    <p class="mb-0">Code on
-      <a href="https://github.com/sudhirj/shots">GitHub</a>. Data from the
-      <a href="https://apisetu.gov.in/public/marketplace/api/cowin/cowin-public-v2">CoWIN Public APIs</a>. Some
-      location data is sourced from
-      <a href="http://download.geonames.org/export/">GeoNames under the Creative Commons License</a>. Add
-      <code>format=json</code> to query parameters to get JSON.</p>
-  </div>
 </div>
 
-<% @sessions.values.map(&:center).map(&:district_id).compact.uniq.each do |id| %>
-  <input type="hidden" value="<%= "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=#{id}&date=#{@date.strftime('%d-%m-%Y')}".html_safe %>" name="fetchSource"/>
-<% end %>
-
 <script>
-    var jsonify = function (data) {
-        return data.json()
-    };
-    var recheck = function () {
-        document.getElementsByName('fetchSource').forEach(function (v) {
-            url = v.getAttribute('value')
-            fetch(url).then(jsonify).then(function (data) {
-                data.centers.forEach(function (center) {
-                    center.sessions.forEach(function (session) {
-                        var holder = document.getElementById(session.session_id)
-                        if (holder) {
-                            holder.innerText = session.available_capacity;
-                        }
-                    })
-                })
-            })
-        });
+    window.jump = function () {
+        const makeHiddenField = function (name, value) {
+            let field = document.createElement("input");
+            field.setAttribute("type", "hidden");
+            field.setAttribute("name", name);
+            field.setAttribute("value", value);
+            return field;
+        };
+        window.navigator.geolocation
+            .getCurrentPosition(function (pos) {
+                let lat = makeHiddenField('lat', pos.coords.latitude);
+                let lon = makeHiddenField('lon', pos.coords.longitude);
+                let form = document.getElementById('opts');
+                form.appendChild(lat);
+                form.appendChild(lon);
+                form.submit();
+            }, function () {
+                alert("Sorry, we couldn't access your location. Please try to find your pincode.")
+            });
     }
-    var scheduleRecheck = function () {
-        setTimeout(function () {
-            recheck();
-            scheduleRecheck();
-        }, 60000)
-    }
-    recheck();
-    scheduleRecheck();
 </script>
-

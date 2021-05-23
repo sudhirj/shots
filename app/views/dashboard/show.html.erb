@@ -3,7 +3,9 @@
 <% end %>
 <div class="container">
   <header class="my-5">
-    <h1 class="display-5 text-center">Take The Shot!</h1>
+    <a href="<%= root_path %>" class="text-dark text-decoration-none">
+      <h1 class="display-5 text-center">Take The Shot!</h1>
+    </a>
     <% if @pincode_geodata.present? %>
       <h2 class="text-center h5 text-muted">COVID vaccination centers
         near <span class="text-primary"><%= @pincode_geodata.short_list.join(', ') %></span></h2>
