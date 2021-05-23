@@ -38,9 +38,10 @@
       <div class="d-flex flex-row justify-content-between align-items-center font-monospace fs-6">
         <% (Time.zone.today..(Time.zone.today + 5.days)).to_a.each do |date| %>
           <% count = sessions.select { _1.date == date }.sum(&:availability) %>
-          <div class="text-center bg-light bg-gradient p-2 rounded text-dark">
+          <% empty = sessions.select { _1.date == date }.empty? %>
+          <div class="text-center bg-light bg-gradient p-2 rounded text-dark border border-2 <%= empty ? 'border-light' : (count.zero? ? 'border-danger' : 'border-success') %>">
             <div class="fw-bold small"><%= Date::DAYNAMES[date.wday][0..2].upcase %></div>
-            <% if sessions.select { _1.date == date }.empty? %>
+            <% if empty %>
               <div class="fs-5 my-1 fw-bold text-muted">&dash;</div>
             <% else %>
               <div class="fs-5 my-1 fw-bold <%= count > 0 ? 'text-success' : 'text-danger' %>"><%= count %></div>
