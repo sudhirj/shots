@@ -9,39 +9,10 @@
     <h3 class="text-center px-2 my-3 h5 text-muted">Find a vaccination center near you and check availability.</h3>
   </header>
 
-  <%= form_tag jump_path, method: :post, id: 'opts' do |f| %>
-    <h4 class="text-center">Where are you?</h4>
-    <div class="input-group my-3">
-      <button class="btn btn-success bg-gradient" type="button" onclick="jump()">FIND ME</button>
-      <input type="text" class="form-control font-monospace fw-bold text-center" placeholder="PINCODE" aria-label="Pincode" value="<%= @pincode %>" name="pincode"/>
-      <button class="btn btn-primary bg-gradient" type="submit">GO</button>
-    </div>
-    <p class="text-center px-2 my-5 text-muted">We're working on scheduling, but for now you'll have to make your actual
-      booking on COWIN.</p>
-  <% end %>
+  <%=render partial: 'dashboard/jump' %>
+  <p class="text-center px-2 my-5 text-muted">We're working on scheduling, but for now you'll have to make your actual
+    booking on COWIN.</p>
 
   <%= render partial: 'dashboard/footer' %>
 </div>
 
-<script>
-    window.jump = function () {
-        const makeHiddenField = function (name, value) {
-            let field = document.createElement("input");
-            field.setAttribute("type", "hidden");
-            field.setAttribute("name", name);
-            field.setAttribute("value", value);
-            return field;
-        };
-        window.navigator.geolocation
-            .getCurrentPosition(function (pos) {
-                let lat = makeHiddenField('lat', pos.coords.latitude);
-                let lon = makeHiddenField('lon', pos.coords.longitude);
-                let form = document.getElementById('opts');
-                form.appendChild(lat);
-                form.appendChild(lon);
-                form.submit();
-            }, function () {
-                alert("Sorry, we couldn't access your location. Please try to find your pincode.")
-            });
-    }
-</script>
