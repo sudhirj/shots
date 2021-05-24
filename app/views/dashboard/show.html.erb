@@ -21,7 +21,8 @@
         <div class="text-center text-md-start">
           <h3 class="text-uppercase h5 mb-0"><%= center.name %></h3>
           <% if @geodata[center.pincode].present? %>
-            <div class="small text-muted">Near <%= @geodata[center.pincode].short_list.join(', ') + '.' %>
+            <div class="small text-muted my-1">
+              Open from <%= center.open.strftime("%-l:%M%P") %> to <%= center.close.strftime("%-l:%M%P") %> near <%= @geodata[center.pincode].short_list.join(', ') + '.' %>
               <% unless @pincode_distance_map[center.pincode].to_i.zero? %>
                 About <%= @pincode_distance_map[center.pincode].round %>&nbsp;km away.
               <% end %></div>
