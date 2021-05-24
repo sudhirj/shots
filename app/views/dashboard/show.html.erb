@@ -37,6 +37,7 @@
           <% sessions.map(&:min_age).uniq.sort.take(1).each do |age| %>
             <div class="border fw-bold rounded px-2 py-1 bg-light me-md-2 bg-gradient <%= age > 18 ? 'text-danger border-danger' : 'text-success border-success' %>"><%= age %>&plus;</div>
           <% end %>
+          <div class="border fw-bold rounded px-2 py-1 bg-light me-md-2 bg-gradient <%= center.fee_type.to_s.upcase.strip == "FREE" ? 'text-success border-success' : 'text-danger border-danger' %>"><%= center.fee_type.to_s.upcase.strip %></div>
         </div>
       </div>
 
