@@ -1,7 +1,4 @@
 <%= form_tag jump_path, method: :post, id: 'opts' do |f| %>
-  <% if @pincode.blank? %>
-    <h4 class="text-center">Where are you?</h4>
-  <% end %>
   <div class="input-group my-3">
     <button class="btn btn-success bg-gradient" type="button" onclick="jump()">FIND ME</button>
     <input type="text" class="form-control font-monospace fw-bold text-center" placeholder="PINCODE" aria-label="Pincode" value="<%= @pincode %>" name="pincode"/>
