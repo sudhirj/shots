@@ -143,16 +143,30 @@ namespace :loadup do
       Geodatum.insert_all!(insertions)
     end
   end
+
+  task places: [:environment] do
+    Center.includes(:district).find_each do |center|
+      Place.upsert({
+                     area: center.block.strip,
+                     city: center.district.name,
+                     pincode: center.pincode,
+                     area_slug: center.block.parameterize,
+                     city_slug: center.district.name.parameterize,
+                     created_at: DateTime.now,
+                     updated_at: DateTime.now
+                   }, unique_by: [:city_slug, :area_slug, :pincode])
+    end
+    Geodatum.find_each do |geo|
+      Place.upsert({
+                     area: geo.place.gsub("(#{geo.admin2})", "").strip,
+                     city: geo.admin2.strip,
+                     pincode: geo.pincode,
+                     area_slug: geo.place.gsub("(#{geo.admin2})", "").strip.parameterize,
+                     city_slug: geo.admin2.parameterize,
+                     created_at: DateTime.now,
+                     updated_at: DateTime.now
+                   }, unique_by: [:city_slug, :area_slug, :pincode])
+    end
+  end
 end
-# 0 country code      : iso country code, 2 characters
-# 1 postal code       : varchar(20)
-# 2 place name        : varchar(180)
-# 3 admin name1       : 1. order subdivision (state) varchar(100)
-# 4 admin code1       : 1. order subdivision (state) varchar(20)
-# 5 admin name2       : 2. order subdivision (county/province) varchar(100)
-# 6 admin code2       : 2. order subdivision (county/province) varchar(20)
-# 7 admin name3       : 3. order subdivision (community) varchar(100)
-# 8 admin code3       : 3. order subdivision (community) varchar(20)
-# 9 latitude          : estimated latitude (wgs84)
-# 10 longitude         : estimated longitude (wgs84)
-# 11 accuracy          : accuracy of lat/lng from 1=estimated, 4=geonameid, 6=centroid of addresses or
+

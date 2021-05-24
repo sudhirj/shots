@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_05_22_140505) do
+ActiveRecord::Schema.define(version: 2021_05_24_094022) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_stat_statements"
@@ -64,6 +64,18 @@ ActiveRecord::Schema.define(version: 2021_05_22_140505) do
     t.datetime "updated_at", precision: 6, null: false
     t.string "map_url"
     t.string "map_image"
+  end
+
+  create_table "places", force: :cascade do |t|
+    t.integer "pincode"
+    t.string "area"
+    t.string "city"
+    t.string "area_slug"
+    t.string "city_slug"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["city_slug", "area_slug", "pincode"], name: "index_places_on_city_slug_and_area_slug_and_pincode", unique: true
+    t.index ["pincode"], name: "index_places_on_pincode"
   end
 
   create_table "sessions", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
