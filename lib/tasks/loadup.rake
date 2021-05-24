@@ -145,6 +145,7 @@ namespace :loadup do
   end
 
   task places: [:environment] do
+    ActiveRecord::Base.logger = Logger.new($stdout)
     Center.includes(:district).find_each do |center|
       Place.upsert({
                      area: center.block.strip,
