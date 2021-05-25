@@ -4,36 +4,23 @@ class DashboardController < ApplicationController
   def index; end
 
   def show
-    @pincode = params[:pincode].to_i
+    slug = params[:slug]
+    pincode_places = looks_like_pincode?(slug) ? Place.where(pincode: slug.to_i) : []
+    city_places = Place.where(city_slug: [slug, pincode_places.map(&:city_slug).uniq].flatten)
 
-    begin
-      pincodes_geodata = $redis.with do |r|
-        r.geosearch 'geo/pincodes', 'FROMMEMBER', @pincode, 'BYRADIUS', 25, 'km',
-                    'WITHDIST', 'ASC'
-      end
-    rescue StandardError
-      redirect_to root_path
-      return
-    end
-
-    @pincode_distance_map = pincodes_geodata.each_with_object({}) do |data, memo|
-      memo[data.first.to_i] = data.last.to_f
-    end
-
-    @sessions = Session.includes(:center)
-                       .where(center: { pincode: @pincode_distance_map.keys })
+    @sessions = Session.includes(center: [:district])
+                       .where(center: { pincode: [[city_places, pincode_places].flatten.map(&:pincode).uniq ] })
                        .where('date >= ? ', Time.zone.today)
 
-    @center_session_groups = @sessions.group_by(&:center).sort_by do |center, _sessions|
-      @pincode_distance_map[center.pincode]
+    @center_session_groups = @sessions.group_by(&:center).sort_by do |center, sessions|
+      [(center.pincode == slug.to_i ? -1 : 0),-sessions.sum(&:availability)]
     end
+    @pincode_place_map = city_places.group_by(&:pincode).to_h
 
-    pincodes = @center_session_groups.map(&:first).map(&:pincode).to_set + [@pincode].to_set
-    geodata = Geodatum.where(pincode: pincodes.to_a).to_a
-    @geodata = geodata.each_with_object({}) do |data, memo|
-      memo[data.pincode] = data unless memo[data.pincode].present? && memo[data.pincode].accuracy > data.accuracy
-    end
-    @pincode_geodata = geodata.select { _1.pincode == @pincode }.max_by(&:accuracy)
+    @title_components = []
+    @title_components.push city_places.sample.city
+    @title_components.push pincode_places.sample.area unless pincode_places.empty?
+    @title_components.reverse!
   end
 
   def jump
@@ -41,14 +28,18 @@ class DashboardController < ApplicationController
       nearest_pincode = $redis.with do |r|
         r.geosearch 'geo/pincodes', 'FROMLONLAT', params[:lon], params[:lat], 'BYRADIUS', 50, 'km', 'ASC', 'COUNT', 1
       end
-      redirect_to nearest_pincode.empty? ? root_path : pincode_path(nearest_pincode.first)
+      redirect_to nearest_pincode.empty? ? root_path : slug_path(nearest_pincode.first)
       return
     end
 
-    redirect_to pincode_path(params[:pincode]) if clean_pincode.present?
+    redirect_to slug_path(params[:pincode]) if clean_pincode.present?
   end
 
   private
+
+  def looks_like_pincode?(slug)
+    slug.to_s.size == 6 && slug.to_i.to_s == slug.to_s
+  end
 
   def clean_pincode
     pincode = params[:pincode]

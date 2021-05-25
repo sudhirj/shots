@@ -25,6 +25,6 @@ SitemapGenerator::Sitemap.create do
   #     add article_path(article), :lastmod => article.updated_at
   #   end
   Pincode.find_each do |pincode|
-    add pincode_path(pincode.id), changefreq: 'daily'
+    add slug_path(pincode.id), changefreq: 'daily'
   end
 end
