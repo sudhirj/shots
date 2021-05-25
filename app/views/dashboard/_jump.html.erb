@@ -5,6 +5,29 @@
     <button class="btn btn-primary bg-gradient" type="submit">GO</button>
   </div>
 <% end %>
+<%= form_tag request.path, method: :get do |f| %>
+  <div class="d-none flex-column mb-2 flex-md-row justify-content-md-between">
+    <div class="btn-group btn-group-sm my-1" role="group" aria-label="Vaccine Selector">
+      <% %w[ANY COVISHIELD COVAXIN].each do |vac| %>
+        <input type="radio" class="btn-check" value="<%= vac.upcase %>" name="vaccine" id="<%= "vac_#{vac.downcase}" %>" autocomplete="off" >
+        <label class="btn btn-outline-primary" for="<%= "vac_#{vac.downcase}" %>"><%= vac.upcase %></label>
+      <% end %>
+    </div>
+    <div class="btn-group btn-group-sm my-1" role="group" aria-label="Fee Selector">
+      <% %w[ANY FREE PAID].each do |fee| %>
+        <input type="radio" class="btn-check" value="<%= fee.upcase %>" name="fee" id="<%= "fee_#{fee.downcase}" %>" autocomplete="off" >
+        <label class="btn btn-outline-primary" for="<%= "fee_#{fee.downcase}" %>"><%= fee.upcase %></label>
+      <% end %>
+    </div>
+    <div class="btn-group btn-group-sm my-1" role="group" aria-label="Age Selector">
+      <% ['ANY', '18+', '45+'].each do |age| %>
+        <input type="radio" class="btn-check" value="<%= age.upcase.to_i %>" name="age" id="<%= "age_#{age.downcase.to_i}" %>" autocomplete="off" >
+        <label class="btn btn-outline-primary" for="<%= "age_#{age.downcase.to_i}" %>"><%= age.upcase %></label>
+      <% end %>
+    </div>
+  </div>
+
+<% end %>
 
 <script>
     window.jump = function () {

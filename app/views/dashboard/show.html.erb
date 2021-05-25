@@ -29,14 +29,14 @@
 
         </div>
         <!-- labels-->
-        <div class="d-flex justify-content-around my-3 mb-md-0 small justify-content-md-start">
+        <div class="d-flex justify-content-center my-3 mb-md-0 small justify-content-md-start">
           <% sessions.map(&:vaccine).uniq.sort.each do |vaccine| %>
-            <div class="border border-dark fw-bold rounded text-muted px-2 py-1 me-md-2 bg-light bg-gradient"><%= vaccine %></div>
+            <div class="border border-dark fw-bold rounded text-muted px-2 py-1 me-2 bg-light bg-gradient"><%= vaccine %></div>
           <% end %>
           <% sessions.map(&:min_age).uniq.sort.take(1).each do |age| %>
-            <div class="border fw-bold rounded px-2 py-1 bg-light me-md-2 bg-gradient <%= age > 18 ? 'text-danger border-danger' : 'text-success border-success' %>"><%= age %>&plus;</div>
+            <div class="border fw-bold rounded px-2 py-1 bg-light me-2 bg-gradient <%= age > 18 ? 'text-danger border-danger' : 'text-success border-success' %>"><%= age %>&plus;</div>
           <% end %>
-          <div class="border fw-bold rounded px-2 py-1 bg-light me-md-2 bg-gradient <%= center.fee_type.to_s.upcase.strip == "FREE" ? 'text-success border-success' : 'text-danger border-danger' %>"><%= center.fee_type.to_s.upcase.strip %></div>
+          <div class="border fw-bold rounded px-2 py-1 bg-light bg-gradient <%= center.fee_type.to_s.upcase.strip == "FREE" ? 'text-success border-success' : 'text-danger border-danger' %>"><%= center.fee_type.to_s.upcase.strip %></div>
         </div>
       </div>
 

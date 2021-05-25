@@ -21,6 +21,8 @@ class DashboardController < ApplicationController
     @title_components.push city_places.sample.city
     @title_components.push pincode_places.sample.area unless pincode_places.empty?
     @title_components.reverse!
+
+    @pincode = slug.to_i if looks_like_pincode?(slug)
   end
 
   def jump
