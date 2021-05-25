@@ -24,7 +24,8 @@ SitemapGenerator::Sitemap.create do
   #   Article.find_each do |article|
   #     add article_path(article), :lastmod => article.updated_at
   #   end
-  Pincode.find_each do |pincode|
-    add slug_path(pincode.id), changefreq: 'daily'
+  slugs = Place.find_each.flat_map{|p| [p.pincode.to_s, p.city_slug]}.to_set
+  slugs.each do |slug|
+    add slug_path(slug), changefreq: 'daily'
   end
 end
